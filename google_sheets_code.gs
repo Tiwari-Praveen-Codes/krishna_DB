@@ -97,6 +97,15 @@ function doPost(e) {
         .setMimeType(ContentService.MimeType.JSON);
     }
 
+    // ACTION: Sync Single Table (Fast & Dedicated for 10 Tabs)
+    if ((action === "sync_table" || action === "sync_tab") && payload.tab_name && payload.headers && payload.rows) {
+      var count = writeGenericTab(ss, payload.tab_name, payload.headers, payload.rows);
+      responseData.tabs_updated.push({ tab: payload.tab_name, row_count: count });
+      responseData.message = "Successfully updated tab '" + payload.tab_name + "' with " + count + " rows.";
+      return ContentService.createTextOutput(JSON.stringify(responseData))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
     // ACTION: Sync Students Directory (1,000 students)
     if (payload.students && Array.isArray(payload.students)) {
       var count = writeStudentsTab(ss, payload.students);
@@ -131,6 +140,7 @@ function doPost(e) {
     responseData.message = "Successfully synchronized MySQL data to Google Sheets!";
     return ContentService.createTextOutput(JSON.stringify(responseData))
       .setMimeType(ContentService.MimeType.JSON);
+
 
   } catch (err) {
     return ContentService.createTextOutput(JSON.stringify({
@@ -334,6 +344,20 @@ function writeOverviewMetricsTab(ss, metrics) {
   sheet.autoResizeColumn(2);
 }
 
+var TAB_COLORS = {
+  "Students": "#1e3a8a",          // Navy Blue
+  "School_Records": "#0369a1",    // Dark Sky Blue
+  "Semester_Results": "#065f46",  // Emerald Green
+  "Subjects": "#4338ca",          // Indigo
+  "Subject_Marks": "#9a3412",     // Deep Rust
+  "Attendance": "#0f766e",        // Teal
+  "Gap_Years": "#78350f",         // Amber Brown
+  "Activities": "#6b21a8",        // Deep Purple
+  "Seminars": "#1e293b",          // Slate Charcoal
+  "Certificates": "#831843",      // Deep Rose
+  "Overview_Metrics": "#0f172a"   // Midnight
+};
+
 /**
  * Generic tab writer for any MySQL table
  */
@@ -345,24 +369,44 @@ function writeGenericTab(ss, tabName, headers, rowsData) {
   }
   sheet.clear();
   sheet.getRange(1, 1, rows.length, headers.length).setValues(rows);
-  styleTableHeader(sheet, headers.length, "#374151");
+
+  var color = TAB_COLORS[tabName] || "#374151";
+  styleTableHeader(sheet, headers.length, color);
   sheet.setFrozenRows(1);
-  for (var col = 1; col <= headers.length; col++) {
-    sheet.autoResizeColumn(col);
+
+  // Set font
+  sheet.getRange(2, 1, rows.length - 1, headers.length).setFontFamily("Roboto").setFontSize(10);
+
+  // Auto-resize columns up to 10 columns
+  for (var col = 1; col <= Math.min(headers.length, 12); col++) {
+    try {
+      sheet.autoResizeColumn(col);
+    } catch (e) {}
   }
   return rows.length - 1;
 }
 
 /**
- * Helpers
+ * Helpers: Case-insensitive search for existing sheet tab
  */
 function getOrCreateTab(ss, tabName) {
   var sheet = ss.getSheetByName(tabName);
-  if (!sheet) {
-    sheet = ss.insertSheet(tabName);
+  if (sheet) return sheet;
+
+  // Case-insensitive match across existing tabs
+  var allSheets = ss.getSheets();
+  var targetClean = tabName.toLowerCase().replace(/[\s_]+/g, "");
+  for (var i = 0; i < allSheets.length; i++) {
+    var curClean = allSheets[i].getName().toLowerCase().replace(/[\s_]+/g, "");
+    if (curClean === targetClean) {
+      return allSheets[i];
+    }
   }
-  return sheet;
+
+  // Create new tab if not found
+  return ss.insertSheet(tabName);
 }
+
 
 function styleTableHeader(sheet, columnCount, bgColor) {
   var header = sheet.getRange(1, 1, 1, columnCount);
