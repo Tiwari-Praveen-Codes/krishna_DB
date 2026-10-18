@@ -1,0 +1,1175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ScholarTrack | Academic Progression DBMS</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+<div class="dashboard-layout">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+        <div class="brand">
+            <div class="brand-icon">🎓</div>
+            <div>
+                <h2>ScholarTrack</h2>
+                <small>Academic Progression DBMS</small>
+            </div>
+        </div>
+
+        <p class="sidebar-nav-title">MAIN MENU</p>
+
+        <ul class="nav-links">
+            <li class="nav-item active">
+                <button type="button" data-tab="overview">
+                    <span class="nav-icon">▦</span> Overview & Dashboard
+                </button>
+            </li>
+            <li class="nav-item">
+                <button type="button" data-tab="students">
+                    <span class="nav-icon">👥</span> Student Directory
+                </button>
+            </li>
+            <li class="nav-item">
+                <button type="button" data-tab="academics">
+                    <span class="nav-icon">▤</span> Academic Progression
+                </button>
+            </li>
+            <li class="nav-item">
+                <button type="button" data-tab="attendance">
+                    <span class="nav-icon">⏱️</span> Attendance & Analytics
+                </button>
+            </li>
+            <li class="nav-item">
+                <button type="button" data-tab="portfolio">
+                    <span class="nav-icon">★</span> Activities & Portfolio
+                </button>
+            </li>
+            <li class="nav-item">
+                <button type="button" data-tab="predictor">
+                    <span class="nav-icon">🎯</span> CGPA Target Predictor
+                </button>
+            </li>
+            <li class="nav-item">
+                <button type="button" data-tab="sheets">
+                    <span class="nav-icon">📊</span> Google Sheets Sync
+                </button>
+            </li>
+        </ul>
+
+        <div class="sidebar-footer">
+            <div class="db-pill">
+                <div>
+                    <strong style="color: white; display: block; font-size: 13px;">MySQL 8.0 Connected</strong>
+                    <span style="font-size: 11px;">Schema: <code>student_ledger</code> (3NF)</span>
+                </div>
+                <div class="db-status-dot"></div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+
+        <!-- Topbar -->
+        <header class="topbar">
+            <div class="topbar-title">
+                <h1>Academic Progression Management System</h1>
+                <p>Relational DBMS with SGPA/CGPA Tracking, Attendance, & Portfolio Verification</p>
+            </div>
+
+            <div class="topbar-actions">
+                <button class="btn btn-outline btn-sm" onclick="switchTab('sheets')">
+                    📊 Sheets Sync
+                </button>
+                <button class="btn btn-primary btn-sm" onclick="openAddStudentModal()">
+                    + Add Student
+                </button>
+            </div>
+        </header>
+
+        <div class="page-container">
+
+            <!-- ACTIVE STUDENT CONTEXT BANNER -->
+            <div class="active-student-bar">
+                <div class="student-identity">
+                    <div class="student-avatar" id="activeStudentInitial">S</div>
+                    <div class="student-meta">
+                        <h3 id="activeStudentName">Loading Student Profile...</h3>
+                        <p id="activeStudentMeta">Roll No: -- • Department: -- • Year: --</p>
+                    </div>
+                </div>
+
+                <div id="gapIndicatorBadge">
+                    <span class="badge-tag badge-success">● Continuous Progression</span>
+                </div>
+            </div>
+
+            <!-- ========================================================== -->
+            <!-- TAB 1: OVERVIEW & DASHBOARD -->
+            <!-- ========================================================== -->
+            <div class="tab-pane active" id="tab-overview">
+
+                <!-- Aggregated Stats Cards -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <span>Total Students</span>
+                            <span class="stat-icon blue">👥</span>
+                        </div>
+                        <div class="stat-value" id="statTotalStudents">--</div>
+                        <div class="stat-desc">Enrolled in database (Max: 1000)</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <span>Semester Records</span>
+                            <span class="stat-icon green">▤</span>
+                        </div>
+                        <div class="stat-value" id="statTotalRecords">--</div>
+                        <div class="stat-desc">Academic evaluations logged</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <span>Average CGPA</span>
+                            <span class="stat-icon purple">↗</span>
+                        </div>
+                        <div class="stat-value" id="statAverageCgpa">--</div>
+                        <div class="stat-desc">Institution-wide grade point</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <span>Portfolio Entries</span>
+                            <span class="stat-icon orange">★</span>
+                        </div>
+                        <div class="stat-value" id="statTotalActivities">--</div>
+                        <div class="stat-desc">Activities, seminars & certs</div>
+                    </div>
+                </div>
+
+                <!-- Academic Progression Chart Panel -->
+                <div class="card-panel">
+                    <div class="panel-title-bar">
+                        <div>
+                            <h3>Academic Progression — SGPA & CGPA Trend</h3>
+                            <p id="chartStatusText">Live semester evaluation progression from database</p>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn btn-sm btn-outline" onclick="openAddSemesterModal()">+ Add Semester Result</button>
+                        </div>
+                    </div>
+
+                    <div class="chart-container-box">
+                        <canvas id="performanceChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Visual Analytics Grid 1: Pie & Doughnut Charts -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; margin-bottom: 24px;">
+                    <!-- Grade Honours Distribution Pie Chart -->
+                    <div class="card-panel" style="margin-bottom: 0;">
+                        <div class="panel-title-bar">
+                            <div>
+                                <h3>Academic Standing Distribution</h3>
+                                <p>Semesters by university honours classification</p>
+                            </div>
+                            <span class="badge-tag badge-purple">Pie Chart</span>
+                        </div>
+                        <div class="chart-container-box" style="height: 260px;">
+                            <canvas id="gradeDistChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Theory vs Lab Performance Doughnut Chart -->
+                    <div class="card-panel" style="margin-bottom: 0;">
+                        <div class="panel-title-bar">
+                            <div>
+                                <h3>Theory vs Practical Performance</h3>
+                                <p>Weighted evaluation distribution across coursework</p>
+                            </div>
+                            <span class="badge-tag badge-blue">Doughnut</span>
+                        </div>
+                        <div class="chart-container-box" style="height: 260px;">
+                            <canvas id="theoryLabPieChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Visual Analytics Grid 2: Course Scores & Attendance Bar Charts -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; margin-bottom: 24px;">
+                    <!-- Course Marks Bar Chart -->
+                    <div class="card-panel" style="margin-bottom: 0;">
+                        <div class="panel-title-bar">
+                            <div>
+                                <h3>Subject Evaluation Scores</h3>
+                                <p>Recent course marks vs passing thresholds</p>
+                            </div>
+                            <span class="badge-tag badge-success">Bar Chart</span>
+                        </div>
+                        <div class="chart-container-box" style="height: 260px;">
+                            <canvas id="courseMarksBarChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Attendance Compliance Bar Chart -->
+                    <div class="card-panel" style="margin-bottom: 0;">
+                        <div class="panel-title-bar">
+                            <div>
+                                <h3>Subject Attendance vs 75% Threshold</h3>
+                                <p>Course compliance with university defaulter boundary</p>
+                            </div>
+                            <span class="badge-tag badge-warning">Defaulter Metric</span>
+                        </div>
+                        <div class="chart-container-box" style="height: 260px;">
+                            <canvas id="attComplianceBarChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Progression History Table -->
+                <div class="card-panel">
+                    <div class="panel-title-bar">
+                        <div>
+                            <h3>Semester-by-Semester Progression Log</h3>
+                            <p>SGPA, CGPA, official pass/ATKT status, and backlog count</p>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Semester</th>
+                                    <th>Academic Year</th>
+                                    <th>SGPA</th>
+                                    <th>CGPA</th>
+                                    <th>Result Status</th>
+                                    <th>Backlogs</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="progressionHistoryTable">
+                                <tr><td colspan="7" class="text-center">Loading semester progression records...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- ========================================================== -->
+            <!-- TAB 2: STUDENT DIRECTORY & CRUD -->
+            <!-- ========================================================== -->
+            <div class="tab-pane" id="tab-students">
+                <div class="card-panel">
+                    <div class="panel-title-bar">
+                        <div>
+                            <h3>Student Directory</h3>
+                            <p>Search, manage, edit profiles and register new students</p>
+                        </div>
+                        <span class="badge-tag badge-blue" id="studentCountTag">Loading...</span>
+                    </div>
+
+                    <div class="toolbar-group">
+                        <div class="search-input-wrap">
+                            <span class="search-icon">🔍</span>
+                            <input type="text" id="studentSearchInput" oninput="searchStudents()"
+                                   placeholder="Search student by name, roll number, or department...">
+                        </div>
+                        <button class="btn btn-primary" onclick="openAddStudentModal()">+ Register Student</button>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Student Name & Email</th>
+                                    <th>Roll Number</th>
+                                    <th>Branch / Department</th>
+                                    <th>Admission Year</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="studentTableBody">
+                                <tr><td colspan="6" class="text-center">Loading students...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========================================================== -->
+            <!-- TAB 3: ACADEMIC PROGRESSION (Semesters, School, Gaps) -->
+            <!-- ========================================================== -->
+            <div class="tab-pane" id="tab-academics">
+                
+                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px;">
+                    <!-- Semester Results Section -->
+                    <div class="card-panel">
+                        <div class="panel-title-bar">
+                            <div>
+                                <h3>Semester Results Management</h3>
+                                <p>Manage semester SGPA, CGPA, and subject evaluations</p>
+                            </div>
+                            <button class="btn btn-sm btn-primary" onclick="openAddSemesterModal()">+ Add Semester</button>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Semester</th>
+                                        <th>Year</th>
+                                        <th>SGPA</th>
+                                        <th>CGPA</th>
+                                        <th>Status</th>
+                                        <th>Backlogs</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="academicsSemTableBody">
+                                    <!-- Populated via loadStudentDashboard -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Side Panels: School Records & Gap Years -->
+                    <div>
+                        <!-- School Records Panel -->
+                        <div class="card-panel" style="margin-bottom: 20px;">
+                            <div class="panel-title-bar">
+                                <div>
+                                    <h3>SSC & HSC School Records</h3>
+                                    <p>Secondary & Higher Secondary education</p>
+                                </div>
+                                <button class="btn btn-sm btn-outline" onclick="openAddSchoolRecordModal()">+ Add</button>
+                            </div>
+                            <div id="schoolRecordsList">Loading school records...</div>
+                        </div>
+
+                        <!-- Academic Gap Years Panel -->
+                        <div class="card-panel">
+                            <div class="panel-title-bar">
+                                <div>
+                                    <h3>Academic Gap Years</h3>
+                                    <p>Documented leave and delay periods</p>
+                                </div>
+                                <button class="btn btn-sm btn-outline" onclick="openAddGapYearModal()">+ Add</button>
+                            </div>
+                            <div id="gapYearsList">Loading gap records...</div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- ========================================================== -->
+            <!-- TAB 4: ATTENDANCE & SUBJECT ANALYTICS -->
+            <!-- ========================================================== -->
+            <div class="tab-pane" id="tab-attendance">
+                
+                <!-- Attendance Metrics Summary Grid -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-header"><span>Classes Held</span><span class="stat-icon blue">⏱️</span></div>
+                        <div class="stat-value" id="attTotalHeld">0</div>
+                        <div class="stat-desc">Across all enrolled subjects</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-header"><span>Classes Attended</span><span class="stat-icon green">✓</span></div>
+                        <div class="stat-value" id="attTotalAttended">0</div>
+                        <div class="stat-desc">Present in lecture/lab sessions</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-header"><span>Overall Attendance</span><span class="stat-icon purple">%</span></div>
+                        <div class="stat-value" id="attOverallPct">0.0%</div>
+                        <div class="stat-desc">Cumulative student percentage</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-header"><span>Defaulter Warnings</span><span class="stat-icon orange">⚠️</span></div>
+                        <div class="stat-value" id="attWarningsCount" style="color: #ef4444;">0</div>
+                        <div class="stat-desc">Subjects below warning threshold</div>
+                    </div>
+                </div>
+
+                <!-- Subject Analytics Cards -->
+                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px; margin-bottom: 24px;">
+                    <!-- Attendance Table -->
+                    <div class="card-panel">
+                        <div class="panel-title-bar">
+                            <div>
+                                <h3>Attendance Records by Subject</h3>
+                                <p>Configurable warning threshold with real-time defaulter flags</p>
+                            </div>
+                            <button class="btn btn-sm btn-primary" onclick="openAddAttendanceModal()">+ Log Attendance</button>
+                        </div>
+
+                        <div class="toolbar-group">
+                            <label style="font-size: 13px; font-weight: 600; color: #475569;">
+                                Warning Threshold (%):
+                                <input type="number" id="attendanceThresholdInput" value="75" min="1" max="100"
+                                       style="width: 70px; padding: 4px 8px; margin-left: 6px; border: 1px solid #cbd5e1; border-radius: 4px;"
+                                       onchange="loadAttendanceTab(selectedStudentId)">
+                            </label>
+                            <small style="color: #64748b;">(Default: 75% per university regulations)</small>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Code</th>
+                                        <th>Subject Name</th>
+                                        <th>Academic Period</th>
+                                        <th>Held</th>
+                                        <th>Attended</th>
+                                        <th>Attendance %</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="attendanceTableBody">
+                                    <tr><td colspan="7" class="text-center">Loading attendance...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Subject Analytics Panel -->
+                    <div class="card-panel">
+                        <div class="panel-title-bar">
+                            <div>
+                                <h3>Subject Analytics</h3>
+                                <p>Theory vs Lab evaluation insights</p>
+                            </div>
+                        </div>
+
+                        <div style="margin-bottom: 16px;">
+                            <div style="font-size: 12px; color: #64748b;">Overall Subject Score Average</div>
+                            <div style="font-size: 24px; font-weight: 800; color: #1e3a8a;" id="analyticsAvgPct">0.0%</div>
+                        </div>
+
+                        <div style="margin-bottom: 20px;">
+                            <div style="font-size: 12px; color: #64748b;">Failed Evaluation Attempts</div>
+                            <div style="font-size: 24px; font-weight: 800; color: #ef4444;" id="analyticsFailedAttempts">0</div>
+                        </div>
+
+                        <h4 style="font-size: 13.5px; font-weight: 700; margin-bottom: 10px;">Performance Breakdown:</h4>
+                        <div id="theoryLabAnalytics">Loading analytics...</div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- ========================================================== -->
+            <!-- TAB 5: PORTFOLIO & ACHIEVEMENTS -->
+            <!-- ========================================================== -->
+            <div class="tab-pane" id="tab-portfolio">
+                <div class="card-panel">
+                    <div class="panel-title-bar">
+                        <div>
+                            <h3>Student Portfolio & Co-Curricular Ledger</h3>
+                            <p>Verify technical activities, seminars, certifications, and hackathons</p>
+                        </div>
+                    </div>
+
+                    <!-- Subtabs -->
+                    <div class="filter-pills">
+                        <button class="pill-btn portfolio-subtab-btn active" data-subtab="activities" onclick="setPortfolioSubTab('activities')">
+                            🏆 Activities (Technical / Co-curricular / Extra)
+                        </button>
+                        <button class="pill-btn portfolio-subtab-btn" data-subtab="seminars" onclick="setPortfolioSubTab('seminars')">
+                            🎤 Seminars (Internal & External)
+                        </button>
+                        <button class="pill-btn portfolio-subtab-btn" data-subtab="certificates" onclick="setPortfolioSubTab('certificates')">
+                            📜 Certificates & Achievements
+                        </button>
+                    </div>
+
+                    <!-- Activities Section -->
+                    <div id="portfolio-activities-section">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                            <div class="filter-pills" style="margin-bottom: 0;">
+                                <button class="pill-btn active" onclick="loadActivities(selectedStudentId, '')">All Activities</button>
+                                <button class="pill-btn" onclick="loadActivities(selectedStudentId, 'Technical')">Technical</button>
+                                <button class="pill-btn" onclick="loadActivities(selectedStudentId, 'Co-curricular')">Co-curricular</button>
+                                <button class="pill-btn" onclick="loadActivities(selectedStudentId, 'Extra-curricular')">Extra-curricular</button>
+                            </div>
+                            <button class="btn btn-sm btn-primary" onclick="openAddActivityModal()">+ Add Activity</button>
+                        </div>
+                        <div id="activitiesListContainer">Loading activities...</div>
+                    </div>
+
+                    <!-- Seminars Section -->
+                    <div id="portfolio-seminars-section" style="display: none;">
+                        <div style="display: flex; justify-content: flex-end; margin-bottom: 16px;">
+                            <button class="btn btn-sm btn-primary" onclick="openAddSeminarModal()">+ Add Seminar</button>
+                        </div>
+                        <div id="seminarsListContainer">Loading seminars...</div>
+                    </div>
+
+                    <!-- Certificates Section -->
+                    <div id="portfolio-certificates-section" style="display: none;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                            <div class="filter-pills" style="margin-bottom: 0;">
+                                <button class="pill-btn active" onclick="loadCertificates(selectedStudentId, '')">All</button>
+                                <button class="pill-btn" onclick="loadCertificates(selectedStudentId, 'Course')">Courses</button>
+                                <button class="pill-btn" onclick="loadCertificates(selectedStudentId, 'Hackathon')">Hackathons</button>
+                                <button class="pill-btn" onclick="loadCertificates(selectedStudentId, 'Internship')">Internships</button>
+                                <button class="pill-btn" onclick="loadCertificates(selectedStudentId, 'Achievement')">Achievements</button>
+                            </div>
+                            <button class="btn btn-sm btn-primary" onclick="openAddCertificateModal()">+ Add Certificate</button>
+                        </div>
+                        <div id="certificatesListContainer">Loading certificates...</div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- ========================================================== -->
+            <!-- TAB 6: CGPA TARGET PREDICTOR -->
+            <!-- ========================================================== -->
+            <div class="tab-pane" id="tab-predictor">
+                <div class="card-panel calculator-card">
+                    <div class="panel-title-bar">
+                        <div>
+                            <h3>CGPA Target Predictor & Semester Forecaster</h3>
+                            <p>Calculate the average SGPA required in remaining semesters to achieve your goal</p>
+                        </div>
+                        <span class="badge-tag badge-purple">Academic Planning Tool</span>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+                        <div>
+                            <div class="form-group">
+                                <label for="calcCurrentCgpa">Current Cumulative CGPA (0.00 - 10.00)</label>
+                                <input type="number" step="0.01" min="0" max="10" id="calcCurrentCgpa" class="form-control" value="8.10">
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="calcCompletedSems">Completed Semesters</label>
+                                    <input type="number" min="0" max="10" id="calcCompletedSems" class="form-control" value="4">
+                                </div>
+                                <div class="form-group">
+                                    <label for="calcTotalSems">Total Programme Semesters</label>
+                                    <input type="number" min="1" max="10" id="calcTotalSems" class="form-control" value="8">
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="calcDesiredCgpa">Desired Final Graduation CGPA</label>
+                                <input type="number" step="0.01" min="0" max="10" id="calcDesiredCgpa" class="form-control" value="8.50">
+                            </div>
+
+                            <button type="button" class="btn btn-primary" style="width: 100%; margin-top: 8px;" onclick="calculateCgpaPrediction()">
+                                🎯 Compute Required SGPA
+                            </button>
+                        </div>
+
+                        <div>
+                            <div id="calcResultBox" class="calc-result-box" style="display: none;">
+                                <!-- Populated dynamically by calculateCgpaPrediction -->
+                            </div>
+
+                            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-top: 16px;">
+                                <strong style="font-size: 13px; color: #334155;">Calculation Methodology:</strong>
+                                <p style="font-size: 12.5px; color: #64748b; margin-top: 6px;">
+                                    $$\text{Target SGPA} = \frac{(\text{Desired CGPA} \times \text{Total Sems}) - (\text{Current CGPA} \times \text{Completed Sems})}{\text{Remaining Sems}}$$
+                                </p>
+                                <p style="font-size: 12px; color: #94a3b8; margin-top: 8px;">
+                                    * Important Note: This calculator assumes equal semester weighting. Official university degree certifications weight credits individually per course, which may introduce minor variations in final outcomes.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- ========================================================== -->
+            <!-- TAB 7: GOOGLE SHEETS SYNCHRONIZATION -->
+            <!-- ========================================================== -->
+            <div class="tab-pane" id="tab-sheets">
+                <div class="card-panel sync-panel-card">
+                    <div class="panel-title-bar">
+                        <div>
+                            <h3>Google Sheets One-Way Cloud Synchronization</h3>
+                            <p>Direct authentic pipeline from MySQL database tables to Google Sheets API v4</p>
+                        </div>
+                        <div id="syncStatusBadge">Checking sync status...</div>
+                    </div>
+
+                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 18px; margin-bottom: 20px;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; font-size: 13.5px; margin-bottom: 12px;">
+                            <div>
+                                <span style="color: #64748b;">Google Apps Script Web App URL:</span><br>
+                                <strong style="font-family: 'JetBrains Mono', monospace; font-size: 11px; word-break: break-all; color: #2563eb;">
+                                    https://script.google.com/macros/s/AKfycbxyHpAyj2hBfcMtcFGTbzBb-PnJfcy1O1ydX2q_h-HcWVSkjENeRUdjIa3mC0NbSHas/exec
+                                </strong>
+                            </div>
+                            <div>
+                                <span style="color: #64748b;">Service Account Credentials:</span><br>
+                                <strong id="serviceAccountDisplay" style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px;">--</strong>
+                            </div>
+                        </div>
+                        <div style="font-size: 12.5px; color: #475569; background: #f1f5f9; padding: 8px 12px; border-radius: 6px;">
+                            💡 <strong>Tip:</strong> The Google Apps Script Web App allows syncing 1,000 students and semester results directly from MySQL to Google Sheets with zero port-forwarding!
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 24px; display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button id="syncWebAppBtn" class="btn btn-primary" onclick="triggerGoogleSheetsWebAppSync()" style="background: #0284c7; border-color: #0284c7;">
+                            ⚡ Push to Apps Script Web App
+                        </button>
+                        <button id="syncNowBtn" class="btn btn-outline" onclick="triggerGoogleSheetsSync()">
+                            🔄 Sync via Service Account API v4
+                        </button>
+                        <a href="/api/students/export" target="_blank" class="btn btn-outline">
+                            🔒 Test Protected JSON Export
+                        </a>
+                    </div>
+
+                    <div id="syncResultContainer" style="display: none; margin-bottom: 24px;"></div>
+
+
+                    <h4 style="font-size: 15px; font-weight: 700; margin-bottom: 12px;">Automated Worksheet Tab Architecture:</h4>
+                    <p style="font-size: 13px; color: #64748b; margin-bottom: 14px;">
+                        Synchronization idempotently updates 10 distinct worksheet tabs with static headers, preventing duplicate entries:
+                    </p>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; font-size: 13px;">
+                        <div style="padding: 10px; background: white; border: 1px solid #e2e8f0; border-radius: 6px;">1. <code>Students</code> — Profiles & Contacts</div>
+                        <div style="padding: 10px; background: white; border: 1px solid #e2e8f0; border-radius: 6px;">2. <code>School_Records</code> — SSC & HSC Records</div>
+                        <div style="padding: 10px; background: white; border: 1px solid #e2e8f0; border-radius: 6px;">3. <code>Semester_Results</code> — SGPA & CGPA</div>
+                        <div style="padding: 10px; background: white; border: 1px solid #e2e8f0; border-radius: 6px;">4. <code>Subjects</code> — Curriculum Registry</div>
+                        <div style="padding: 10px; background: white; border: 1px solid #e2e8f0; border-radius: 6px;">5. <code>Subject_Marks</code> — Exam Evaluations</div>
+                        <div style="padding: 10px; background: white; border: 1px solid #e2e8f0; border-radius: 6px;">6. <code>Attendance</code> — Held vs Attended</div>
+                        <div style="padding: 10px; background: white; border: 1px solid #e2e8f0; border-radius: 6px;">7. <code>Gap_Years</code> — Academic Gap Logs</div>
+                        <div style="padding: 10px; background: white; border: 1px solid #e2e8f0; border-radius: 6px;">8. <code>Activities</code> — Technical & Co-curricular</div>
+                        <div style="padding: 10px; background: white; border: 1px solid #e2e8f0; border-radius: 6px;">9. <code>Seminars</code> — Presentations & Talks</div>
+                        <div style="padding: 10px; background: white; border: 1px solid #e2e8f0; border-radius: 6px;">10. <code>Certificates</code> — Certifications</div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+
+        <footer style="margin-top: auto; padding: 20px 32px; border-top: 1px solid #e2e8f0; font-size: 12.5px; color: #64748b; display: flex; justify-content: space-between;">
+            <div>ScholarTrack Academic Management System • DBMS Mini-Project</div>
+            <div>Normalized Relational Schema (3NF) • MySQL 8.0 & Flask</div>
+        </footer>
+
+    </main>
+</div>
+
+<!-- ====================================================================== -->
+<!-- MODALS -->
+<!-- ====================================================================== -->
+
+<!-- Add Student Modal -->
+<div class="modal-backdrop" id="addStudentModal">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3>Register New Student</h3>
+            <button class="modal-close-btn" onclick="closeAddStudentModal()">&times;</button>
+        </div>
+        <form id="addStudentForm" onsubmit="submitAddStudent(event)">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Full Student Name *</label>
+                    <input type="text" id="addStudentName" class="form-control" required placeholder="e.g. Shruti Patil">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Roll Number *</label>
+                        <input type="text" id="addStudentRoll" class="form-control" required placeholder="e.g. 41">
+                    </div>
+                    <div class="form-group">
+                        <label>Admission Year *</label>
+                        <input type="number" id="addStudentYear" class="form-control" min="1900" max="2100" value="2022" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Branch / Department *</label>
+                    <input type="text" id="addStudentBranch" class="form-control" required placeholder="e.g. Computer Science & Engineering">
+                </div>
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" id="addStudentEmail" class="form-control" placeholder="e.g. shruti.patil@viva-technology.org">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="closeAddStudentModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Student</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Student Modal -->
+<div class="modal-backdrop" id="editStudentModal">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3>Edit Student Profile</h3>
+            <button class="modal-close-btn" onclick="closeEditStudentModal()">&times;</button>
+        </div>
+        <form id="editStudentForm" onsubmit="submitEditStudent(event)">
+            <input type="hidden" id="editStudentId">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Full Student Name *</label>
+                    <input type="text" id="editStudentName" class="form-control" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Roll Number *</label>
+                        <input type="text" id="editStudentRoll" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Admission Year *</label>
+                        <input type="number" id="editStudentYear" class="form-control" min="1900" max="2100" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Branch / Department *</label>
+                    <input type="text" id="editStudentBranch" class="form-control" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Email Address</label>
+                        <input type="email" id="editStudentEmail" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Academic Status</label>
+                        <select id="editStudentStatus" class="form-control">
+                            <option value="Active">Active</option>
+                            <option value="Graduated">Graduated</option>
+                            <option value="On Hold">On Hold</option>
+                            <option value="Discontinued">Discontinued</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="closeEditStudentModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Update Profile</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Add Semester Result Modal -->
+<div class="modal-backdrop" id="addSemesterModal">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3>Record Semester Result</h3>
+            <button class="modal-close-btn" onclick="closeAddSemesterModal()">&times;</button>
+        </div>
+        <form id="addSemesterForm" onsubmit="submitAddSemester(event)">
+            <div class="modal-body">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Semester Number (1-10) *</label>
+                        <input type="number" id="semNumber" class="form-control" min="1" max="10" required placeholder="e.g. 5">
+                    </div>
+                    <div class="form-group">
+                        <label>Academic Year *</label>
+                        <input type="text" id="semYear" class="form-control" required placeholder="e.g. 2024-2025">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>SGPA (0.00 - 10.00) *</label>
+                        <input type="number" step="0.01" min="0" max="10" id="semSgpa" class="form-control" required placeholder="e.g. 8.75">
+                    </div>
+                    <div class="form-group">
+                        <label>CGPA (0.00 - 10.00) *</label>
+                        <input type="number" step="0.01" min="0" max="10" id="semCgpa" class="form-control" required placeholder="e.g. 8.60">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Result Status</label>
+                        <select id="semStatus" class="form-control">
+                            <option value="Pass">Pass</option>
+                            <option value="ATKT">ATKT</option>
+                            <option value="Fail">Fail</option>
+                            <option value="Pending">Pending</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Backlog Count</label>
+                        <input type="number" id="semBacklogs" class="form-control" min="0" value="0">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" id="semGapAfter">
+                        <span>Academic gap year taken immediately following this semester</span>
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="closeAddSemesterModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Semester Result</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Semester Marks Modal -->
+<div class="modal-backdrop" id="semesterMarksModal">
+    <div class="modal-card" style="max-width: 720px;">
+        <div class="modal-header">
+            <h3 id="marksModalTitle">Semester Subject Marks</h3>
+            <button class="modal-close-btn" onclick="closeSemesterMarksModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <table class="data-table" style="margin-bottom: 20px;">
+                <thead>
+                    <tr>
+                        <th>Code</th>
+                        <th>Subject</th>
+                        <th>Type</th>
+                        <th>Marks</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="marksTableBody"></tbody>
+            </table>
+
+            <h4 style="font-size: 14px; font-weight: 700; margin-bottom: 12px;">+ Record Subject Mark</h4>
+            <form id="addMarkForm" onsubmit="submitAddSubjectMark(event)">
+                <div class="form-group">
+                    <label>Select Subject</label>
+                    <select id="markSubjectSelect" class="form-control" required></select>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Marks Obtained *</label>
+                        <input type="number" step="0.5" id="marksObtainedInput" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Maximum Marks</label>
+                        <input type="number" step="0.5" id="marksTotalInput" class="form-control" value="100">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Passing Threshold Marks</label>
+                        <input type="number" step="0.5" id="passingMarksInput" class="form-control" value="40">
+                    </div>
+                    <div class="form-group">
+                        <label>Evaluation Component</label>
+                        <select id="markComponentSelect" class="form-control">
+                            <option value="Final">Final</option>
+                            <option value="Internal">Internal</option>
+                            <option value="External">External</option>
+                            <option value="Practical">Practical</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-sm btn-primary">Add Mark Entry</button>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-outline" onclick="closeSemesterMarksModal()">Close</button>
+        </div>
+    </div>
+</div>
+
+<!-- Add School Record Modal -->
+<div class="modal-backdrop" id="addSchoolRecordModal">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3>Add SSC/HSC Record</h3>
+            <button class="modal-close-btn" onclick="closeAddSchoolRecordModal()">&times;</button>
+        </div>
+        <form id="addSchoolRecordForm" onsubmit="submitAddSchoolRecord(event)">
+            <div class="modal-body">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Education Level *</label>
+                        <select id="schoolLevel" class="form-control" required>
+                            <option value="SSC">SSC (10th Standard)</option>
+                            <option value="HSC">HSC (12th Standard)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Passing Year *</label>
+                        <input type="number" id="schoolYear" class="form-control" value="2020" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Examination Board *</label>
+                    <input type="text" id="schoolBoard" class="form-control" placeholder="e.g. Maharashtra State Board" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Marks Obtained *</label>
+                        <input type="number" step="0.1" id="schoolMarksObtained" class="form-control" required placeholder="e.g. 485">
+                    </div>
+                    <div class="form-group">
+                        <label>Total Maximum Marks *</label>
+                        <input type="number" step="0.1" id="schoolMarksTotal" class="form-control" required placeholder="e.g. 500">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="closeAddSchoolRecordModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save School Record</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Add Gap Year Modal -->
+<div class="modal-backdrop" id="addGapYearModal">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3>Log Academic Gap Year</h3>
+            <button class="modal-close-btn" onclick="closeAddGapYearModal()">&times;</button>
+        </div>
+        <form id="addGapYearForm" onsubmit="submitAddGapYear(event)">
+            <div class="modal-body">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Start Year *</label>
+                        <input type="number" id="gapStartYear" class="form-control" value="2021" required>
+                    </div>
+                    <div class="form-group">
+                        <label>End Year *</label>
+                        <input type="number" id="gapEndYear" class="form-control" value="2022" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Reason Category *</label>
+                    <select id="gapCategory" class="form-control">
+                        <option value="Academic">Academic Preparation / CET / GATE</option>
+                        <option value="Medical">Medical Leave</option>
+                        <option value="Personal">Personal Circumstances</option>
+                        <option value="Other">Other Reasons</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Explanation Notes</label>
+                    <textarea id="gapNotes" class="form-control" rows="3" placeholder="Optional background details for academic records"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="closeAddGapYearModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Gap Year</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Add Attendance Modal -->
+<div class="modal-backdrop" id="addAttendanceModal">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3>Log Subject Attendance</h3>
+            <button class="modal-close-btn" onclick="closeAddAttendanceModal()">&times;</button>
+        </div>
+        <form id="addAttendanceForm" onsubmit="submitAddAttendance(event)">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Subject *</label>
+                    <select id="attSubjectSelect" class="form-control" required></select>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Academic Year *</label>
+                        <input type="text" id="attYear" class="form-control" value="2024-2025" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Semester Number (1-10) *</label>
+                        <input type="number" id="attSemester" class="form-control" min="1" max="10" value="5" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Classes Held *</label>
+                        <input type="number" id="attHeld" class="form-control" min="1" value="45" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Classes Attended *</label>
+                        <input type="number" id="attAttended" class="form-control" min="0" value="40" required>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="closeAddAttendanceModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Attendance</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Add Activity Modal -->
+<div class="modal-backdrop" id="addActivityModal">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3>Add Activity Entry</h3>
+            <button class="modal-close-btn" onclick="closeAddActivityModal()">&times;</button>
+        </div>
+        <form id="addActivityForm" onsubmit="submitAddActivity(event)">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Activity Title *</label>
+                    <input type="text" id="actTitle" class="form-control" required placeholder="e.g. Smart India Hackathon Finalist">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Activity Type *</label>
+                        <select id="actType" class="form-control" required>
+                            <option value="Technical">Technical</option>
+                            <option value="Co-curricular">Co-curricular</option>
+                            <option value="Extra-curricular">Extra-curricular</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Activity Date</label>
+                        <input type="date" id="actDate" class="form-control">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Organizing Body / Association</label>
+                    <input type="text" id="actOrg" class="form-control" placeholder="e.g. Ministry of Education / ACM">
+                </div>
+                <div class="form-group">
+                    <label>Description & Scope</label>
+                    <textarea id="actDesc" class="form-control" rows="3" placeholder="Brief summary of contribution and achievement"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="closeAddActivityModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Activity</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Add Seminar Modal -->
+<div class="modal-backdrop" id="addSeminarModal">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3>Record Seminar Talk / Presentation</h3>
+            <button class="modal-close-btn" onclick="closeAddSeminarModal()">&times;</button>
+        </div>
+        <form id="addSeminarForm" onsubmit="submitAddSeminar(event)">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Seminar Title *</label>
+                    <input type="text" id="semTitle" class="form-control" required placeholder="e.g. Distributed Database Architecture">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Seminar Scope *</label>
+                        <select id="semScope" class="form-control" required>
+                            <option value="Internal">Internal (College / Dept)</option>
+                            <option value="External">External (Conference / Summit)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Date</label>
+                        <input type="date" id="semDate" class="form-control">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Organizer</label>
+                    <input type="text" id="semOrganizer" class="form-control" placeholder="e.g. IEEE / Department of Computer Engineering">
+                </div>
+                <div class="form-group">
+                    <label>Certificate / Verification URL</label>
+                    <input type="url" id="semCertUrl" class="form-control" placeholder="https://verify.example.org/credential-id">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="closeAddSeminarModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Seminar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Add Certificate Modal -->
+<div class="modal-backdrop" id="addCertificateModal">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3>Add Certificate & Achievement</h3>
+            <button class="modal-close-btn" onclick="closeAddCertificateModal()">&times;</button>
+        </div>
+        <form id="addCertificateForm" onsubmit="submitAddCertificate(event)">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Certificate Title *</label>
+                    <input type="text" id="certTitle" class="form-control" required placeholder="e.g. AWS Certified Solutions Architect">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Issuing Organization *</label>
+                        <input type="text" id="certIssuer" class="form-control" required placeholder="e.g. Amazon Web Services / Coursera">
+                    </div>
+                    <div class="form-group">
+                        <label>Category *</label>
+                        <select id="certCategory" class="form-control" required>
+                            <option value="Course">Course</option>
+                            <option value="Hackathon">Hackathon</option>
+                            <option value="Internship">Internship</option>
+                            <option value="Achievement">Achievement</option>
+                            <option value="Seminar">Seminar</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Issue Date</label>
+                        <input type="date" id="certDate" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Credential Verification URL</label>
+                        <input type="url" id="certUrl" class="form-control" placeholder="https://aws.amazon.com/verify/...">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Notes / Credential ID</label>
+                    <input type="text" id="certNotes" class="form-control" placeholder="Credential ID: AWS-84920">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="closeAddCertificateModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Certificate</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- Master Application Engine -->
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+
+</body>
+</html>
